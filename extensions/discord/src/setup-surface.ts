@@ -94,10 +94,22 @@ async function resolveDiscordGroupAllowlist(params: {
       resolved: false,
     }));
   }
-  return await resolveDiscordChannelAllowlist({
+
+  const resolved = await resolveDiscordChannelAllowlist({
     token,
     entries: params.entries,
   });
+
+  return resolved.map((entry) => ({
+    input: entry.input,
+    resolved: entry.resolved,
+    guildKey: entry.guildId ?? "",
+    channelKey: entry.channelId,
+    guildName: entry.guildName,
+    channelName: entry.channelName,
+    archived: entry.archived,
+    note: entry.note,
+  }));
 }
 
 export const discordSetupWizard: ChannelSetupWizard = createDiscordSetupWizardBase({

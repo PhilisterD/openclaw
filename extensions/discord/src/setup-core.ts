@@ -44,7 +44,10 @@ export function setDiscordGuildChannelAllowlist(
       : (cfg.channels?.discord?.accounts?.[accountId]?.guilds ?? {});
   const guilds: Record<string, DiscordGuildEntry> = { ...baseGuilds };
   for (const entry of entries) {
-    const guildKey = entry.guildKey || "*";
+    const guildKey = entry.guildKey?.trim();
+    if (!guildKey) {
+      continue;
+    }
     const existing = guilds[guildKey] ?? {};
     if (entry.channelKey) {
       const channels = { ...existing.channels };
