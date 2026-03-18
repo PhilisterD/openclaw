@@ -44,7 +44,10 @@ export function setDiscordGuildChannelAllowlist(
       : (cfg.channels?.discord?.accounts?.[accountId]?.guilds ?? {});
   const guilds: Record<string, DiscordGuildEntry> = { ...baseGuilds };
   for (const entry of entries) {
-    const guildKey = entry.guildKey || "*";
+    const guildKey = entry.guildKey?.trim();
+    if (!guildKey) {
+      continue;
+    }
     const existing = guilds[guildKey] ?? {};
     if (entry.channelKey) {
       const channels = { ...existing.channels };
@@ -59,6 +62,31 @@ export function setDiscordGuildChannelAllowlist(
     channel,
     accountId,
     patch: { guilds },
+  });
+}
+
+function normalizeGroupAllowlistEntries(
+  resolved: unknown,
+): Array<{ guildKey: string; channelKey?: string }> {
+  if (!Array.isArray(resolved)) {
+    return [];
+  }
+  return resolved.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return [];
+    }
+    const guildKey =
+      (typeof entry.guildKey === "string" ? entry.guildKey : undefined) ??
+      (typeof entry.guildId === "string" ? entry.guildId : undefined);
+    if (!guildKey?.trim()) {
+      return [];
+    }
+    const channelKey =
+      (typeof entry.channelKey === "string" ? entry.channelKey : undefined) ??
+      (typeof entry.channelId === "string" ? entry.channelId : undefined);
+    return channelKey?.trim()
+      ? [{ guildKey: guildKey.trim(), channelKey: channelKey.trim() }]
+      : [{ guildKey: guildKey.trim() }];
   });
 }
 
@@ -223,7 +251,8 @@ export function createDiscordSetupWizardBase(handlers: {
         cfg: OpenClawConfig;
         accountId: string;
         resolved: unknown;
-      }) => setDiscordGuildChannelAllowlist(cfg, accountId, resolved as never),
+      }) =>
+        setDiscordGuildChannelAllowlist(cfg, accountId, normalizeGroupAllowlistEntries(resolved)),
     },
     allowFrom: {
       credentialInputKey: "token",
